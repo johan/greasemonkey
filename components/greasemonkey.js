@@ -290,9 +290,11 @@ var greasemonkeyService = {
   // figure out the highest supported javascript version
   getMaxJSVersion: function getMaxJSVersion() {
     var versions = [0];
+    jsds.on();
     jsds.enumerateContexts({ enumerateContext: function(nsIContext) {
       versions.push(nsIContext.version);
     }});
+    jsds.off();
 
     var max = Math.max.apply(Math, versions);
     if (!max) return undefined; // worst case, evalInSandbox picks its default
