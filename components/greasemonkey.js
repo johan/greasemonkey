@@ -10,8 +10,25 @@ const appSvc = Cc["@mozilla.org/appshell/appShellService;1"]
 
 const gmSvcFilename = Components.stack.filename;
 
-var jsds = Cc["@mozilla.org/js/jsd/debugger-service;1"].getService()
-             .QueryInterface(Ci.jsdIDebuggerService);
+var maxJSVersion = (function getMaxJSVersion() {
+  var versions = [0];
+  var jsds = Cc["@mozilla.org/js/jsd/debugger-service;1"].getService()
+               .QueryInterface(Ci.jsdIDebuggerService);
+  jsds.on();
+  jsds.enumerateContexts({ enumerateContext: function(nsIContext) {
+    versions.push(nsIContext.version);
+  }});
+  jsds.off();
+
+  var max = Math.max.apply(Math, versions);
+  if (!max) return undefined; // worst case, evalInSandbox picks its default
+
+  // Ci.jsdIDebuggerService, in theory, has properties VERSION_<major>_<minor>
+  // constants whose value are the integer we have now -- but we can't reverse
+  // map them, as they are not fully populated (Firefox/3.5.3 supports 1.8 but
+  // has no constants beyond VERSION_1_5 = 150, for instance)
+  return (max / 100).toString();
+})();
 
 function alert(msg) {
   Cc["@mozilla.org/embedcomp/prompt-service;1"]
@@ -287,25 +304,6 @@ var greasemonkeyService = {
     }
   },
 
-  // figure out the highest supported javascript version
-  getMaxJSVersion: function getMaxJSVersion() {
-    var versions = [0];
-    jsds.on();
-    jsds.enumerateContexts({ enumerateContext: function(nsIContext) {
-      versions.push(nsIContext.version);
-    }});
-    jsds.off();
-
-    var max = Math.max.apply(Math, versions);
-    if (!max) return undefined; // worst case, evalInSandbox picks its default
-
-    // Ci.jsdIDebuggerService, in theory, has properties VERSION_<major>_<minor>
-    // constants whose value are the integer we have now -- but we can't reverse
-    // map them, as they are not fully populated (Firefox/3.5.3 supports 1.8 but
-    // has no constants beyond VERSION_1_5 = 150, for instance)
-    return (max / 100).toString();
-  },
-
   registerMenuCommand: function(unsafeContentWin, commandName, commandFunc,
                                 accelKey, accelModifiers, accessKey) {
     if (!GM_apiLeakCheck("GM_registerMenuCommand")) {
@@ -349,7 +347,7 @@ var greasemonkeyService = {
     try {
       // workaround for https://bugzilla.mozilla.org/show_bug.cgi?id=307984
       var lineFinder = new Error();
-      Components.utils.evalInSandbox(code, sandbox, this.getMaxJSVersion());
+      Components.utils.evalInSandbox(code, sandbox, maxJSVersion);
     } catch (e) { // catches errors while running the script code
       try {
         if (e && "return not in function" == e.message)
