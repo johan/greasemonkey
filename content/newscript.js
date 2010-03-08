@@ -94,7 +94,9 @@ function createScriptSource() {
 
   script.push("// ==/UserScript==");
 
-  script = script.join("\n");
+  var ending = "\n";
+  if (window.navigator.platform.match(/^Win/)) ending = "\r\n";
+  script = script.join(ending);
 
   return script;
 }

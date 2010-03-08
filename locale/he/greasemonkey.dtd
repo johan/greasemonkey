@@ -1,4 +1,5 @@
 <!ENTITY manage.title "Manage User Scripts">
+<!ENTITY manage.button.close "Close">
 <!ENTITY manage.button.add "Add...">
 <!ENTITY manage.button.edit "Edit...">
 <!ENTITY manage.button.remove "Remove">
@@ -34,4 +35,3 @@
 <!ENTITY newscript.description "Description">
 <!ENTITY newscript.includes "Includes (One per line)">
 <!ENTITY newscript.excludes "Excludes (One per line)">
-<!ENTITY manage.button.close "Close">
