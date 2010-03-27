@@ -12,10 +12,14 @@ function ScriptDownloader(win, uri, bundle) {
   this.dependenciesLoaded_ = false;
   this.installOnCompletion_ = false;
   this.tempFiles_ = [];
+  this.updateScript = false;
 }
 
 // Export this one important value to the global namespace.
-window.GM_ScriptDownloader=ScriptDownloader;
+if (typeof window != "undefined")
+  window.GM_ScriptDownloader=ScriptDownloader;
+else if (typeof Config != "undefined")
+  Config.prototype.ScriptDownloader=ScriptDownloader;
 
 ScriptDownloader.prototype.startInstall = function() {
   this.installing_ = true;
@@ -164,6 +168,10 @@ function(dep, file, channel) {
 
   if (httpChannel) {
     if (httpChannel.requestSucceeded) {
+      if (this.updateScript) {
+        dep._script = this.script;
+        dep.updateScript = true;
+      }
       dep.setDownloadedFile(file, channel.contentType, channel.contentCharset ? channel.contentCharset : null);
       this.downloadNextDependency();
     } else {
@@ -196,13 +204,20 @@ ScriptDownloader.prototype.checkDependencyURL = function(url) {
 };
 
 ScriptDownloader.prototype.finishInstall = function(){
-  if (this.installOnCompletion_) {
+  if (this.updateScript) {
+    // Inject the script now that we have the new dependencies
+    var args = this.script._config.gmService.injectionArgs;
+    this.script._config.gmService.injectScripts([this.script], args[0], args[1], args[2]);
+
+    // Save new values to config.xml
+    this.script._config._save();
+  } else if (this.installOnCompletion_) {
     this.installScript();
   }
 };
 
 ScriptDownloader.prototype.errorInstallDependency = function(script, dep, msg){
-  GM_log("Error loading dependency " + dep.urlToDownload + "\n" + msg)
+  GM_log("Error loading dependency " + dep.urlToDownload + "\n" + msg);
   if (this.installOnCompletion_) {
     alert("Error loading dependency " + dep.urlToDownload + "\n" + msg);
   } else {
