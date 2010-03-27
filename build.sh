@@ -29,7 +29,7 @@ for entry in locale/*; do
 done
 
 echo "Patching install.rdf version ..."
-sed -i "s!<em:version>.*</em:version>!<em:version>$GMVER</em:version>!" \
+sed -i "" -e "s!<em:version>.*</em:version>!<em:version>$GMVER</em:version>!" \
   install.rdf
 
 echo "Cleaning up unwanted files ..."
