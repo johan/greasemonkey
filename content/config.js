@@ -43,8 +43,8 @@ Config.prototype = {
   },
 
   _find: function(aScript) {
-    namespace = aScript._namespace.toLowerCase();
-    name = aScript._name.toLowerCase();
+    var namespace = aScript._namespace.toLowerCase();
+    var name = aScript._name.toLowerCase();
 
     for (var i = 0, script; script = this._scripts[i]; i++) {
       if (script._namespace.toLowerCase() == namespace
@@ -496,7 +496,7 @@ Config.prototype = {
    * any necessary upgrades.
    */
   _updateVersion: function() {
-    log("> GM_updateVersion");
+    GM_log("> GM_updateVersion");
 
     // this is the last version which has been run at least once
     var initialized = GM_prefRoot.getValue("version", "0.0");
@@ -528,7 +528,7 @@ Config.prototype = {
     var item = extMan.getItemForID(GM_GUID);
     GM_prefRoot.setValue("version", item.version);
 
-    log("< GM_updateVersion");
+    GM_log("< GM_updateVersion");
   },
 
   /**
