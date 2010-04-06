@@ -307,26 +307,25 @@ function GM_isGreasemonkeyable(url) {
                .getService(Components.interfaces.nsIIOService)
                .extractScheme(url);
 
-  if ("http" == scheme) return true;
-  if ("https" == scheme) return true;
-  if ("ftp" == scheme) return true;
-  if ("data" == scheme) return true;
-
-  if ("file" == scheme) {
-    return GM_prefRoot.getValue('fileIsGreaseable');
-  }
-
-  if ("about" == scheme) {
-    // Always allow "about:blank".
-    if (/^about:blank/.test(url)) return true;
-
-    // Conditionally allow the rest of "about:".
-    return GM_prefRoot.getValue('aboutIsGreaseable');
+  switch (scheme) {
+    case "http":
+    case "https":
+    case "ftp":
+    case "data":
+      return true;
+    case "about":
+      // Always allow "about:blank".
+      if (/^about:blank/.test(url)) return true;
+      // Conditionally allow the rest of "about:".
+      return GM_prefRoot.getValue('aboutIsGreaseable');
+    case "file":
+      return GM_prefRoot.getValue('fileIsGreaseable');
+    case "unmht":
+      return GM_prefRoot.getValue('unmhtIsGreaseable');
   }
 
   return false;
 }
-GM_isGreasemonkeyable = GM_memoize(GM_isGreasemonkeyable);
 
 function GM_getEnabled() {
   return GM_prefRoot.getValue("enabled", true);
