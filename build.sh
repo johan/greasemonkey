@@ -29,8 +29,12 @@ for entry in locale/*; do
 done
 
 echo "Patching install.rdf version ..."
-sed -i "" -e "s!<em:version>.*</em:version>!<em:version>$GMVER</em:version>!" \
+sed -ie "s!<em:version>.*</em:version>!<em:version>$GMVER</em:version>!" \
   install.rdf
+# BSD sed -i takes a mandatory backup file suffix parameter, here "e" -- which
+# other seds will treat as the harmless "sed command follows". Nuke the backup
+# file, if created, so mac builds won't contain that junk file:
+rm -f install.rdfe
 
 echo "Cleaning up unwanted files ..."
 find . -depth -name '*~' -exec rm -rf "{}" \;
