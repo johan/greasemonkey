@@ -1,6 +1,7 @@
-function GM_xmlhttpRequester(unsafeContentWin, chromeWindow) {
+function GM_xmlhttpRequester(unsafeContentWin, chromeWindow, originUrl) {
   this.unsafeContentWin = unsafeContentWin;
   this.chromeWindow = chromeWindow;
+  this.originUrl = originUrl;
 }
 
 // this function gets called by user scripts in content security scope to
@@ -18,23 +19,21 @@ GM_xmlhttpRequester.prototype.contentStartRequest = function(details) {
 
   GM_log("> GM_xmlhttpRequest.contentStartRequest");
 
-  // Store this value by looking at it exactly once, and guaranteeing (via null
-  // prepend) that it is a string, and not an object that might play tricks
-  // with multiple .toString() calls.
-  var url = '' + details.url;
-
+  var ioService = Components.classes["@mozilla.org/network/io-service;1"]
+                  .getService(Components.interfaces.nsIIOService);
   try {
-    var ioService = Components.classes["@mozilla.org/network/io-service;1"]
-                    .getService(Components.interfaces.nsIIOService);
-    var scheme = ioService.extractScheme(url);
+    // Validate and parse the (possibly relative) given URL.
+    var originUri = ioService.newURI(this.originUrl, null, null);
+    var uri = ioService.newURI(details.url, null, originUri);
+    var url = uri.spec;
   } catch (e) {
     // A malformed URL won't be parsed properly.
-    throw new Error('Invalid URL: '+url);
+    throw new Error("Invalid URL: " + details.url);
   }
 
   // This is important - without it, GM_xmlhttpRequest can be used to get
   // access to things like files and chrome. Careful.
-  switch (scheme) {
+  switch (uri.scheme) {
     case "http":
     case "https":
     case "ftp":
@@ -42,7 +41,7 @@ GM_xmlhttpRequester.prototype.contentStartRequest = function(details) {
         GM_hitch(this, "chromeStartRequest", url, details, req)();
       break;
     default:
-      throw new Error("Invalid url: " + url);
+      throw new Error("Disallowed scheme in URL: " + details.url);
   }
 
   GM_log("< GM_xmlhttpRequest.contentStartRequest");
@@ -73,7 +72,9 @@ function(safeUrl, details, req) {
 
   if (details.headers) {
     for (var prop in details.headers) {
-      req.setRequestHeader(prop, details.headers[prop]);
+      if (details.headers.hasOwnProperty(prop)) {
+        req.setRequestHeader(prop, details.headers[prop]);
+      }
     }
   }
 

@@ -65,8 +65,8 @@ GM_BrowserUI.chromeLoad = function(e) {
   GM_prefRoot.watch("enabled", this.enabledWatcher);
 
   // hook various events
-  GM_listen(this.appContent, "DOMContentLoaded", GM_hitch(this, "contentLoad"));
-  GM_listen(this.sidebar, "DOMContentLoaded", GM_hitch(this, "contentLoad"));
+  GM_listen(this.appContent, "DOMContentLoaded", GM_hitch(this, "contentLoad"), true);
+  GM_listen(this.sidebar, "DOMContentLoaded", GM_hitch(this, "contentLoad"), true);
   GM_listen(this.contextMenu, "popupshowing", GM_hitch(this, "contextMenuShowing"));
   GM_listen(this.toolsMenu, "popupshowing", GM_hitch(this, "toolsMenuShowing"));
 
@@ -93,7 +93,7 @@ GM_BrowserUI.chromeLoad = function(e) {
   // reference this once, so that the getter is called at least once, and the
   // initialization routines will run, no matter what
   this.gmSvc.wrappedJSObject.config;
-  
+
   this.gmSvc.registerBrowser(this);
 };
 
@@ -294,29 +294,27 @@ GM_BrowserUI.onLocationChange = function(a,b,c) {
  * avoid leaking it's memory.
  */
 GM_BrowserUI.contentUnload = function(e) {
-  if (e.persisted) {
+  if (e.persisted || !this.menuCommanders || 0 == this.menuCommanders.length) {
     return;
   }
 
   var unsafeWin = e.target.defaultView;
 
-  // remove the commander for this document
-  var commander = null;
-
   // looping over commanders rather than using getCommander because we need
   // the index into commanders.splice.
-  for (var i = 0; item = this.menuCommanders[i]; i++) {
-    if (item.win == unsafeWin) {
-
-      if (item.commander == this.currentMenuCommander) {
-        this.currentMenuCommander.detach();
-        this.currentMenuCommander = null;
-      }
-
-      this.menuCommanders.splice(i, 1);
-
-      break;
+  for (var i = 0, item; item = this.menuCommanders[i]; i++) {
+    if (item.win != unsafeWin) {
+      continue;
     }
+
+    if (item.commander == this.currentMenuCommander) {
+      this.currentMenuCommander.detach();
+      this.currentMenuCommander = null;
+    }
+
+    this.menuCommanders.splice(i, 1);
+
+    break;
   }
 };
 
@@ -338,8 +336,8 @@ GM_BrowserUI.chromeUnload = function() {
  * to show our context items.
  */
 GM_BrowserUI.contextMenuShowing = function() {
-  var contextItem = ge("view-userscript");
-  var contextSep = ge("install-userscript-sep");
+  var contextItem = document.getElementById("view-userscript");
+  var contextSep = document.getElementById("install-userscript-sep");
 
   var culprit = document.popupNode;
 
@@ -373,7 +371,7 @@ GM_BrowserUI.getUserScriptLinkUnderPointer = function() {
 };
 
 GM_BrowserUI.toolsMenuShowing = function() {
-  var installItem = ge("userscript-tools-install");
+  var installItem = document.getElementById("userscript-tools-install");
   var hidden = true;
 
   if (window._content && window._content.location &&
@@ -657,7 +655,7 @@ GM_BrowserUI.installMenuItemClicked = function() {
 GM_BrowserUI.viewContextItemClicked = function() {
   var uri = GM_BrowserUI.getUserScriptLinkUnderPointer();
 
-  this.scriptDownloader_ = new ScriptDownloader(window, uri, this.bundle);
+  this.scriptDownloader_ = new GM_ScriptDownloader(window, uri, this.bundle);
   this.scriptDownloader_.startViewScript();
 };
 
@@ -665,7 +663,4 @@ GM_BrowserUI.manageMenuItemClicked = function() {
    GM_openUserScriptManager();
 };
 
-//loggify(GM_BrowserUI, "GM_BrowserUI");
-
-log("calling init...");
 GM_BrowserUI.init();
